@@ -1,0 +1,13 @@
+# depslib dependency file v1.0
+1446796901 source:g:\mes_programmes\c++\pixefy\main.cpp
+	<iostream>
+	"libbmp.h"
+
+1446795264 source:g:\mes_programmes\c++\pixefy\libbmp\libbmp.cpp
+	"libbmp.h"
+
+1446795060 g:\mes_programmes\c++\pixefy\libbmp\libbmp.h
+	<iostream>
+	<windows.h>
+	<vector>
+
