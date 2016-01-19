@@ -34,8 +34,9 @@
 			<Add option="-Wall" />
 			<Add option="-fexceptions" />
 		</Compiler>
-		<Unit filename="libbmp/libbmp.cpp" />
-		<Unit filename="libbmp/libbmp.h" />
+		<Unit filename="libbmp/global.h" />
+		<Unit filename="libbmp/libbmp_linux.h" />
+		<Unit filename="libbmp/libbmp_win.h" />
 		<Unit filename="main.cpp" />
 		<Extensions>
 			<code_completion />

@@ -11,3 +11,26 @@
 	<windows.h>
 	<vector>
 
+1453138100 source:/home/creekorful/Documents/GIT/Pixefy/main.cpp
+	<iostream>
+	<stdlib.h>
+	"libbmp/global.h"
+
+1453135456 /home/creekorful/Documents/GIT/Pixefy/libbmp/global.h
+	"libbmp_win.h"
+	"libbmp_linux.h"
+
+1453137736 /home/creekorful/Documents/GIT/Pixefy/libbmp/libbmp_win.h
+	<iostream>
+	<windows.h>
+	<vector>
+
+1453144908 /home/creekorful/Documents/GIT/Pixefy/libbmp/libbmp_linux.h
+	<iostream>
+	<stdio.h>
+	<fcntl.h>
+	<sys/types.h>
+	<sys/stat.h>
+	<unistd.h>
+	<vector>
+

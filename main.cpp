@@ -1,5 +1,6 @@
 #include <iostream>
-#include "libbmp.h"
+#include <stdlib.h>
+#include "libbmp/global.h"
 
 using namespace std;
 
