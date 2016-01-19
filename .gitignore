@@ -47,4 +47,5 @@ Temporary Items
 *.gch
 Pixefy
 *.exe
-*.o
+bin/
+obj/
