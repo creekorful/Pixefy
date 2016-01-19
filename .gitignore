@@ -43,9 +43,8 @@ Temporary Items
 .apdisk
 
 #ME
-*.bmp
-*.gch
-Pixefy
-*.exe
-bin/
+[Bb]in
+[Dd]ebug*/
+*.sbr
 obj/
+[Rr]elease*/
