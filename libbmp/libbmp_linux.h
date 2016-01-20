@@ -2,10 +2,6 @@
 #define LIBBMP_H
 #include <iostream>
 #include <stdio.h>
-#include <fcntl.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <unistd.h>
 #include <vector>
 
 #define BI_RGB 0
@@ -69,12 +65,12 @@ public:
     BITMAPINFOHEADER getBitmapInfoHeader();
     std::vector<PIXEL_24BPP> getPixelData();
     void setPixelData(std::vector<PIXEL_24BPP> aDataArray);
-    BITMAP_FILE_FORMAT getFile();
+    BITMAP_FILE_FORMAT getFile(); //todo
     ~Bitmap();
 
 private:
     std::string m_filePath;
-    int m_bitmapFileDescriptor;
+    FILE* m_pBitmapFile;
     BITMAPFILEHEADER m_bitmapFileHeader;
     BITMAPINFOHEADER m_bitmapInfoHeader;
     std::vector<PIXEL_24BPP> m_imageData;
@@ -84,16 +80,16 @@ private:
 
 Bitmap::Bitmap()
 {
-    //ctor
+    m_pBitmapFile = NULL;
 }
 
 Bitmap::Bitmap(std::vector<Bitmap::PIXEL_24BPP> aDataArray, long width, long height, std::string outputFile)
 {
-    m_bitmapFileDescriptor = open(outputFile.c_str(), O_RDWR | O_CREAT);
+    m_pBitmapFile = fopen(outputFile.c_str(), "w+");
 
     //Set up bitmap file header
     m_bitmapFileHeader.bfType = 0x4D42; //magic word
-    m_bitmapFileHeader.bfSize = sizeof(BITMAPFILEHEADER)+sizeof(BITMAPINFOHEADER)+(aDataArray.size()*3); // *3 because 3 bytes for 1 pixel
+    m_bitmapFileHeader.bfSize = sizeof(BITMAPFILEHEADER)+sizeof(BITMAPINFOHEADER)+(aDataArray.size()*3); // *3 because 3 bytes per pixel
     m_bitmapFileHeader.bfOffBits = sizeof(BITMAPFILEHEADER)+sizeof(BITMAPINFOHEADER); //value is 54
     m_bitmapFileHeader.bfReserved1 = 0;
     m_bitmapFileHeader.bfReserved2 = 0;
@@ -111,51 +107,39 @@ Bitmap::Bitmap(std::vector<Bitmap::PIXEL_24BPP> aDataArray, long width, long hei
     m_bitmapInfoHeader.biClrUsed = 0;
     m_bitmapInfoHeader.biClrImportant = 0;
 
-    int neededPadding = (m_bitmapInfoHeader.biWidth) % 4;
+    int neededPadding = (m_bitmapInfoHeader.biWidth) % 4; //todo implement padding
 
-    write(m_bitmapFileDescriptor, &m_bitmapFileHeader, sizeof(Bitmap::BITMAPFILEHEADER));
-    write(m_bitmapFileDescriptor, &m_bitmapInfoHeader, sizeof(Bitmap::BITMAPINFOHEADER));
+    fwrite(&m_bitmapFileHeader, sizeof(m_bitmapFileHeader), 1, m_pBitmapFile);
+    fwrite(&m_bitmapInfoHeader, sizeof(m_bitmapInfoHeader), 1, m_pBitmapFile);
 
     for(unsigned int iCurrentPixel = 0; iCurrentPixel < aDataArray.size(); iCurrentPixel++) //finally write pixel array
     {
-        write(m_bitmapFileDescriptor, &aDataArray[iCurrentPixel], sizeof(Bitmap::PIXEL_24BPP));
+        fwrite(&aDataArray[iCurrentPixel], sizeof(Bitmap::PIXEL_24BPP), 1, m_pBitmapFile);
     }
 
-    //CloseHandle(hNewFile);
-    close(m_bitmapFileDescriptor);
+    fclose(m_pBitmapFile);
 }
 
 bool Bitmap::openFromFile(std::string aFilePath)
 {
     m_filePath = aFilePath;
-    m_bitmapFileDescriptor = open(aFilePath.c_str(), O_RDONLY);
+    m_pBitmapFile = fopen(aFilePath.c_str(), "r");
 
-    if(m_bitmapFileDescriptor != -1) //file opened
+    if(m_pBitmapFile != NULL) //file opened
     {
-        DWORD dwTotalBytesRead = 0;
-        DWORD dwBytesRead = 0;
-        DWORD currentOffset = 0;
-        read(m_bitmapFileDescriptor, &m_bitmapFileHeader, sizeof(m_bitmapFileHeader));
-        currentOffset += dwBytesRead;
-        read(m_bitmapFileDescriptor, &m_bitmapInfoHeader, sizeof(m_bitmapInfoHeader));
-        currentOffset += dwBytesRead;
+        fread(&m_bitmapFileHeader, sizeof(m_bitmapFileHeader), 1, m_pBitmapFile);
+        fread(&m_bitmapInfoHeader, sizeof(m_bitmapInfoHeader), 1, m_pBitmapFile);
         std::cout << "There is: " << (m_bitmapInfoHeader.biHeight*m_bitmapInfoHeader.biWidth) << " pixels (" << (m_bitmapInfoHeader.biHeight*m_bitmapInfoHeader.biWidth)*3 << " bytes)." << std::endl;
-
-        lseek(m_bitmapFileDescriptor, SEEK_SET, m_bitmapFileHeader.bfOffBits);
+        fseek(m_pBitmapFile, m_bitmapFileHeader.bfOffBits, SEEK_SET);
 
         for(int iCurrentPixel = 0; iCurrentPixel < (m_bitmapInfoHeader.biHeight*m_bitmapInfoHeader.biWidth); iCurrentPixel++)
         {
             PIXEL_24BPP currentPixel;
-            read(m_bitmapFileDescriptor, &currentPixel, sizeof(PIXEL_24BPP));
-            dwTotalBytesRead += dwBytesRead;
-            currentOffset += dwBytesRead;
+            fread(&currentPixel, sizeof(Bitmap::PIXEL_24BPP), 1, m_pBitmapFile);
             m_imageData.push_back(currentPixel);
         }
 
-        std::cout << "Final offset: " << currentOffset << std::endl;
-        std::cout<<std::endl;
-
-        close(m_bitmapFileDescriptor);
+        fclose(m_pBitmapFile);
 
         return true;
     }
@@ -180,16 +164,15 @@ std::vector<Bitmap::PIXEL_24BPP> Bitmap::getPixelData()
 
 void Bitmap::setPixelData(std::vector<Bitmap::PIXEL_24BPP> aDataArray)
 {
-    m_bitmapFileDescriptor = open(m_filePath.c_str(), O_RDONLY);
-    lseek(m_bitmapFileDescriptor, SEEK_SET, sizeof(BITMAPFILEHEADER)+sizeof(BITMAPINFOHEADER)+54);
+    m_pBitmapFile = fopen(m_filePath.c_str(), "rw+");
+    fseek(m_pBitmapFile, sizeof(BITMAPFILEHEADER)+sizeof(BITMAPINFOHEADER)+54, SEEK_SET);
 
     for(unsigned int iCurrentPixel = 0; iCurrentPixel < aDataArray.size(); iCurrentPixel++)
     {
-        write(m_bitmapFileDescriptor, &aDataArray[iCurrentPixel], sizeof(Bitmap::PIXEL_24BPP));
+        fwrite(&aDataArray[iCurrentPixel], sizeof(Bitmap::PIXEL_24BPP), 1, m_pBitmapFile);
     }
 
-    //CloseHandle(m_bitmapFileHandle);
-    close(m_bitmapFileDescriptor);
+    fclose(m_pBitmapFile);
 }
 
 Bitmap::~Bitmap()
